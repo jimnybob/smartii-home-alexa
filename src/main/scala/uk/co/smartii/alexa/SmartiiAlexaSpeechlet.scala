@@ -8,6 +8,7 @@ import com.amazonaws.services.lambda.runtime.{Context, RequestStreamHandler}
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.commons.io.IOUtils
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
+import uk.co.smartii.alexa.services.InfraRedService
 
 /**
   * Created by jimbo on 02/01/17.
@@ -34,6 +35,7 @@ class SmartiiAlexaSpeechlet extends RequestStreamHandler {
 
   private def writeResponse(turnOnRequest: TurnOnRequest, outputStream: OutputStream) {
 
+    InfraRedService.send("", "", "")
     val response = TurnOnConfirmation(header = Header(
       messageId = UUID.randomUUID().toString,
       name = "TurnOnConfirmation",
@@ -45,6 +47,7 @@ class SmartiiAlexaSpeechlet extends RequestStreamHandler {
 
   private def writeResponse(turnOffRequest: TurnOffRequest, outputStream: OutputStream) {
 
+    InfraRedService.send("", "", "")
     val response = TurnOffConfirmation(header = Header(
       messageId = UUID.randomUUID().toString,
       name = "TurnOffConfirmation",

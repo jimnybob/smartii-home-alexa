@@ -27,6 +27,7 @@ libraryDependencies ++= Seq(
 //  "org.scalamock"                %% "scalamock-scalatest-support" % "3.2.2" % Test
 )
 
+lambdaName := Some("smartii-home")
 handlerName := Some("uk.co.smartii.alexa.SmartiiAlexaHandler")
 region := Some("eu-west-1")
 
