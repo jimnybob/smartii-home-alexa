@@ -60,6 +60,8 @@ unmanagedResourceDirectories in Compile += (baseDirectory.value / "src/main/sql"
 
 unmanagedResourceDirectories in Test += (baseDirectory.value / "src/test/sql")
 
+//unmanagedSourceDirectories in Compile += (sourceManaged.value / "slick")
+
 slick <<= slickCodeGenTask // register manual sbt command
 
 sourceGenerators in Compile <+= slickCodeGenTask // register automatic code generation on every compile, remove for only manual use
