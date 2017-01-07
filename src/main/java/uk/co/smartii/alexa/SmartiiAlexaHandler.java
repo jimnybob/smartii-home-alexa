@@ -9,7 +9,8 @@ import com.amazon.speech.ui.PlainTextOutputSpeech;
 import com.amazon.speech.ui.SimpleCard;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
-import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -58,9 +59,13 @@ public class SmartiiAlexaHandler {
             }
         this.timestampVerifier = timestampVerifier;
         log("SpeechletLambda done init");
+
+        final Injector injector = Guice.createInjector(new SmartiiGuiceModule() );
+        speechlet = injector.getInstance( SmartiiAlexaSpeechlet.class );
     }
 
-    private final SmartiiAlexaSpeechlet speechlet = new SmartiiAlexaSpeechlet();
+    private final SmartiiAlexaSpeechlet speechlet;// = new SmartiiAlexaSpeechlet();
+
     public void handleRequest(InputStream inputStream, OutputStream outputStream, Context context) throws IOException {
         speechlet.handleRequest(inputStream, outputStream, context);
     }

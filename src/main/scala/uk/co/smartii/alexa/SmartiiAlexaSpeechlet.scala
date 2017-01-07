@@ -2,18 +2,23 @@ package uk.co.smartii.alexa
 
 import java.io.{IOException, InputStream, OutputStream}
 import java.util.UUID
+import javax.inject.Inject
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import com.amazon.alexa.smarthome.model._
 import com.amazonaws.services.lambda.runtime.{Context, RequestStreamHandler}
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.commons.io.IOUtils
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
+import play.api.libs.ws.WSClient
+import play.api.libs.ws.ning.NingWSClient
 import uk.co.smartii.alexa.services.InfraRedService
 
 /**
   * Created by jimbo on 02/01/17.
   */
-class SmartiiAlexaSpeechlet extends RequestStreamHandler {
+class SmartiiAlexaSpeechlet @Inject()(infraRedService: InfraRedService) extends RequestStreamHandler {
 
   override def handleRequest(inputStream: InputStream, output: OutputStream, context: Context): Unit = {
 
@@ -35,7 +40,7 @@ class SmartiiAlexaSpeechlet extends RequestStreamHandler {
 
   private def writeResponse(turnOnRequest: TurnOnRequest, outputStream: OutputStream) {
 
-    InfraRedService.send("", "", "")
+    infraRedService.send("", "", "")
     val response = TurnOnConfirmation(header = Header(
       messageId = UUID.randomUUID().toString,
       name = "TurnOnConfirmation",
@@ -47,7 +52,7 @@ class SmartiiAlexaSpeechlet extends RequestStreamHandler {
 
   private def writeResponse(turnOffRequest: TurnOffRequest, outputStream: OutputStream) {
 
-    InfraRedService.send("", "", "")
+    infraRedService.send("", "", "")
     val response = TurnOffConfirmation(header = Header(
       messageId = UUID.randomUUID().toString,
       name = "TurnOffConfirmation",
@@ -58,6 +63,8 @@ class SmartiiAlexaSpeechlet extends RequestStreamHandler {
   }
 
   private def writeResponse(discoverAppliancesRequest: DiscoverAppliancesRequest, outputStream: OutputStream) {
+
+    infraRedService.discover
     val response = DiscoverAppliancesResponse(header = Header(
       messageId = UUID.randomUUID().toString,
       name = "DiscoverAppliancesResponse",
