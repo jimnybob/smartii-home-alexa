@@ -6,7 +6,7 @@ import com.google.inject.AbstractModule
 import play.api.libs.concurrent.AkkaGuiceSupport
 import play.api.libs.ws.WSClient
 import play.api.libs.ws.ning.NingWSClient
-import uk.co.smartii.model.Tables
+import uk.co.smartii.alexa.model.{AppConfig, RealAppConfig, Tables}
 import Tables._
 import Tables.profile.api._
 import slick.jdbc.JdbcBackend
@@ -25,5 +25,6 @@ class SmartiiGuiceModule extends AbstractModule with AkkaGuiceSupport {
     bind(classOf[WSClient]).toInstance(NingWSClient())
     bind(classOf[Tables]).toInstance(Tables)
     bind(classOf[Tables.profile.backend.DatabaseDef]).toInstance(Database.forURL(url = "", user = "", password = ""))
+    bind(classOf[AppConfig]).toInstance(RealAppConfig)
   }
 }

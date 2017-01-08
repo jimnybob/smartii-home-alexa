@@ -64,23 +64,13 @@ class SmartiiAlexaSpeechlet @Inject()(infraRedService: InfraRedService) extends 
 
   private def writeResponse(discoverAppliancesRequest: DiscoverAppliancesRequest, outputStream: OutputStream) {
 
-    infraRedService.discover
     val response = DiscoverAppliancesResponse(header = Header(
       messageId = UUID.randomUUID().toString,
       name = "DiscoverAppliancesResponse",
       namespace = "Alexa.ConnectedHome.Discovery",
       payloadVersion = "2"),
-      payload = DiscoveredAppliancesPayload(discoveredAppliances = Seq(DiscoveredAppliance(
-        actions = Seq("turnOn", "turnOff"),
-        additionalApplianceDetails = Map(),
-        applianceId = "kitchenHifi",
-        friendlyDescription = "Kitchen HiFi",
-        friendlyName = "Kitchen hifi",
-        isReachable = true,
-        manufacturerName = "JVC",
-        modelName = "SRSX200",
-        version = "1"
-      ))))
+      payload = DiscoveredAppliancesPayload(discoveredAppliances = infraRedService.discover.map(_.toDiscoveredAppliance))
+    )
 
     outputStream.write(Json.toJson(response).toString().getBytes)
   }

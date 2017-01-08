@@ -74,9 +74,9 @@ lazy val slickCodeGenTask = (sourceDirectory, sourceManaged, dependencyClasspath
 val url = s"jdbc:h2:mem:test;INIT=runscript from '${srcDir.getPath}/main/sql/create.sql'" // connection info for a pre-populated throw-away, in-memory db for this demo, which is freshly initialized on every run
 val jdbcDriver = "org.h2.Driver"
   val slickDriver = "slick.driver.H2Driver"
-  val pkg = "uk.co.smartii.model"
+  val pkg = "uk.co.smartii.alexa.model"
   toError(r.run("slick.codegen.SourceCodeGenerator", cp.files, Array(slickDriver, jdbcDriver, url, outputDir, pkg), s.log))
-  val fname = outputDir + "/uk/co/smartii/model/Tables.scala"
+  val fname = outputDir + "/uk/co/smartii/alexa/model/Tables.scala"
   Seq(file(fname))
 }
 
