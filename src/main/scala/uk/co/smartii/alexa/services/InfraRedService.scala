@@ -7,7 +7,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.amazon.alexa.smarthome.model.{DiscoveredAppliance, SmartHomeAction}
 import play.api.libs.json.{JsObject, JsString, JsValue}
-import play.api.libs.ws.WSClient
+import play.api.libs.ws.{WSClient, WSResponse}
 import uk.co.smartii.alexa.daos.SmartiiApplianceDao
 import uk.co.smartii.alexa.model.Tables.Httpcallevent
 import uk.co.smartii.alexa.model.{ActionOutcome, AppConfig, Appliance, HttpCall}
@@ -15,6 +15,7 @@ import uk.co.smartii.alexa.model.{ActionOutcome, AppConfig, Appliance, HttpCall}
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import play.mvc.Http.Status
 
 /**
   * Created by jimbo on 03/01/17.
@@ -54,10 +55,17 @@ class InfraRedService @Inject()(appConfig: AppConfig,
           case httpCall: HttpCall => httpFutureCall(appliance.room.httpPort, httpCall)
         }
         // As some events have delays we have to include those in wait time when blocking
-        Await.result(Future.sequence(futures), (5 seconds) + action.events.collect{
+        val responseStatii = Await.result(Future.sequence(futures), (5 seconds) + action.events.collect{
           case HttpCall(_, _, _, Some(delay)) => delay.asDuration
-        }.foldLeft(0 seconds)(_ + _))
-        ActionOutcome.SUCCESS
+        }.foldLeft(0 seconds)(_ + _)).map(_.status)
+
+        // Propagate any non-200 responses as sole outcome
+        responseStatii.foldLeft(ActionOutcome.SUCCESS) {
+          case(overallStatus, status)  if overallStatus != ActionOutcome.SUCCESS => overallStatus
+          case(_, Status.OK)  => ActionOutcome.SUCCESS
+          case(_, Status.FORBIDDEN)  => ActionOutcome.INVALIDTOKEN
+          case(_, status) if status != Status.OK => ActionOutcome.OFFLINE
+        }
       }
     }.getOrElse(ActionOutcome.OFFLINE)
   }

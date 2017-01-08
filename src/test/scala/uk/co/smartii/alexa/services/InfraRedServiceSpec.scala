@@ -5,6 +5,7 @@ import com.amazon.alexa.smarthome.model.SmartHomeAction
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
 import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
+import play.mvc.Http.Status
 import uk.co.smartii.alexa.daos.SmartiiApplianceDao
 import uk.co.smartii.alexa.model._
 
@@ -27,6 +28,7 @@ class InfraRedServiceSpec extends FlatSpec with Matchers with MockFactory {
     ))
     val mockRequest = mock[WSRequest]
     val mockResponse = mock[WSResponse]
+    (mockResponse.status _).expects().returns(Status.OK).anyNumberOfTimes()
     (mockRequest.get: () => Future[WSResponse]).expects().returns(Future.successful(mockResponse))
     (ws.url _).expects("http://myhouse:9000/test/path").returns(mockRequest)
     val irService = new InfraRedService(config, null, null, ws, dao)

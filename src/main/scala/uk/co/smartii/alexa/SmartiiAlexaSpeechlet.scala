@@ -1,18 +1,15 @@
 package uk.co.smartii.alexa
 
-import java.io.{IOException, InputStream, OutputStream}
+import java.io.{InputStream, OutputStream}
 import java.util.UUID
 import javax.inject.Inject
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import com.amazon.alexa.smarthome.model.Builders._
 import com.amazon.alexa.smarthome.model._
 import com.amazonaws.services.lambda.runtime.{Context, RequestStreamHandler}
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.commons.io.IOUtils
-import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
-import play.api.libs.ws.WSClient
-import play.api.libs.ws.ning.NingWSClient
+import play.api.libs.json.Json
+import uk.co.smartii.alexa.model.ActionOutcome
 import uk.co.smartii.alexa.services.InfraRedService
 
 /**
@@ -40,26 +37,26 @@ class SmartiiAlexaSpeechlet @Inject()(infraRedService: InfraRedService) extends 
 
   private def writeResponse(turnOnRequest: TurnOnRequest, outputStream: OutputStream) {
 
-    infraRedService.send("", "", "")
-    val response = TurnOnConfirmation(header = Header(
-      messageId = UUID.randomUUID().toString,
-      name = "TurnOnConfirmation",
-      namespace = "Alexa.ConnectedHome.Control",
-      payloadVersion = "2"),payload = EmptyPayload())
+    val response = infraRedService.change(turnOnRequest.payload.appliance.applianceId, SmartHomeAction.turnOn) match {
+      case ActionOutcome.SUCCESS => Json.toJson(turnOnConfirmation())
+      case ActionOutcome.INVALIDTOKEN => Json.toJson(error("InvalidAccessTokenError"))
+      case ActionOutcome.OFFLINE => Json.toJson(error("TargetOfflineError"))
+      case ActionOutcome.UNSUPPORTEDACTION => Json.toJson(error("UnsupportedOperationError"))
+    }
 
-    outputStream.write(Json.toJson(response).toString().getBytes)
+    outputStream.write(response.toString().getBytes)
   }
 
   private def writeResponse(turnOffRequest: TurnOffRequest, outputStream: OutputStream) {
 
-    infraRedService.send("", "", "")
-    val response = TurnOffConfirmation(header = Header(
-      messageId = UUID.randomUUID().toString,
-      name = "TurnOffConfirmation",
-      namespace = "Alexa.ConnectedHome.Control",
-      payloadVersion = "2"),payload = EmptyPayload())
+    val response = infraRedService.change(turnOffRequest.payload.appliance.applianceId, SmartHomeAction.turnOff) match {
+      case ActionOutcome.SUCCESS => Json.toJson(turnOffConfirmation())
+      case ActionOutcome.INVALIDTOKEN => Json.toJson(error("InvalidAccessTokenError"))
+      case ActionOutcome.OFFLINE => Json.toJson(error("TargetOfflineError"))
+      case ActionOutcome.UNSUPPORTEDACTION => Json.toJson(error("UnsupportedOperationError"))
+    }
 
-    outputStream.write(Json.toJson(response).toString().getBytes)
+    outputStream.write(response.toString().getBytes)
   }
 
   private def writeResponse(discoverAppliancesRequest: DiscoverAppliancesRequest, outputStream: OutputStream) {
@@ -77,12 +74,7 @@ class SmartiiAlexaSpeechlet @Inject()(infraRedService: InfraRedService) extends 
 
   private def writeResponse(healthCheckRequest: HealthCheckRequest, outputStream: OutputStream) {
 
-    val response = HealthCheckResponse(header = Header(
-      messageId = UUID.randomUUID().toString,
-      name = "HealthCheckResponse",
-      namespace = "Alexa.ConnectedHome.System",
-      payloadVersion = "2"),
-      payload = HealthResponsePayload(description = "The system is very healthy", isHealthy = true))
+    val response = healthCheck(description = "The system is very healthy", isHealthy = true)
 
     outputStream.write(Json.toJson(response).toString().getBytes)
   }
