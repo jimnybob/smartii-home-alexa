@@ -21,6 +21,8 @@ class InfraRedServiceSpec extends FlatSpec with Matchers with MockFactory {
 
     val config = mock[AppConfig]
     (config.getHomeUrl _).expects().returns("http://myhouse").anyNumberOfTimes()
+    (config.getAuthenticationToken _).expects().returns("asfasdfsda").anyNumberOfTimes()
+
     val ws = mock[WSClient]
     val dao = mock[SmartiiApplianceDao]
     (dao.appliance _).expects("kitchenHifi").returns(Future.successful(Some(
@@ -29,6 +31,7 @@ class InfraRedServiceSpec extends FlatSpec with Matchers with MockFactory {
     val mockRequest = mock[WSRequest]
     val mockResponse = mock[WSResponse]
     (mockResponse.status _).expects().returns(Status.OK).anyNumberOfTimes()
+    (mockRequest.withHeaders _).expects(Seq(("authToken", "asfasdfsda"))).returns(mockRequest)
     (mockRequest.get: () => Future[WSResponse]).expects().returns(Future.successful(mockResponse))
     (ws.url _).expects("http://myhouse:9000/test/path").returns(mockRequest)
     val irService = new InfraRedService(config, null, null, ws, dao)

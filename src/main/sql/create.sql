@@ -18,14 +18,6 @@ CREATE TABLE IF NOT EXISTS ApplianceMappingEvents (
   applianceMappingId INTEGER                            NOT NULL,
   FOREIGN KEY (applianceMappingId) REFERENCES Appliance (id)
 );
--- CREATE TABLE IF NOT EXISTS SleepEvent (
---   id                       INTEGER PRIMARY KEY AUTO_INCREMENT NOT NULL,
---   seconds                  INTEGER                            NOT NULL,
---   applianceMappingEventsId INTEGER                            NOT NULL,
---   applianceMappingId       INTEGER                            NOT NULL,
---   FOREIGN KEY (applianceMappingEventsId) REFERENCES ApplianceMappingEvents (id),
---   FOREIGN KEY (applianceMappingId) REFERENCES Appliance (id)
--- );
 CREATE TABLE IF NOT EXISTS HttpCallEvent (
   id                       INTEGER PRIMARY KEY AUTO_INCREMENT NOT NULL,
   method                   VARCHAR(10)                        NOT NULL,

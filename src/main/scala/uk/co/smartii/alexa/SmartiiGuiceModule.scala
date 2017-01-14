@@ -24,7 +24,12 @@ class SmartiiGuiceModule extends AbstractModule with AkkaGuiceSupport {
 //    bind(classOf[ActorSystem]).toInstance(ActorSystem())
     bind(classOf[WSClient]).toInstance(NingWSClient())
     bind(classOf[Tables]).toInstance(Tables)
-    bind(classOf[Tables.profile.backend.DatabaseDef]).toInstance(Database.forURL(url = RealAppConfig.getDbUrl, user = RealAppConfig.getDbUser, password = RealAppConfig.getDbPassword))
+    bind(classOf[Tables.profile.backend.DatabaseDef]).toInstance(Database.forURL(
+      driver = "com.mysql.jdbc.Driver",
+      url = RealAppConfig.getDbUrl,
+      user = RealAppConfig.getDbUser,
+      password = RealAppConfig.getDbPassword)
+    )
     bind(classOf[AppConfig]).toInstance(RealAppConfig)
   }
 }

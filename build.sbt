@@ -10,10 +10,6 @@ scalaVersion := "2.11.8"
 
 //lazy val root = (project in file(".")).aggregate(alexaSmarthomeModel).dependsOn(alexaSmarthomeModel)
 
-resolvers += "Snowplow Repo" at "http://maven.snplow.com/releases/"
-
-resolvers += "JFrog" at "https://dl.bintray.com/zzztimbo/maven/"
-
 val slickVersion = "3.1.1"
 
 libraryDependencies ++= Seq(

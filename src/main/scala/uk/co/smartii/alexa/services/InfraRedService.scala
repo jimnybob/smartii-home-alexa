@@ -33,9 +33,12 @@ class InfraRedService @Inject()(appConfig: AppConfig,
 //  implicit val materializer = ActorMaterializer()
 //  val wsClient: WSClient = NingWSClient()
 
-  private def httpFutureCall(httpPort: Int, httpCall: HttpCall) = httpCall.method.toUpperCase match {
-    case "GET" => wsClient.url(appConfig.getHomeUrl + ":" + httpPort + httpCall.path).get()
-    case "POST" => wsClient.url(appConfig.getHomeUrl + ":" + httpPort + httpCall.path).post(JsString(""))
+  private def httpFutureCall(httpPort: Int, httpCall: HttpCall) = {
+    val url = wsClient.url(appConfig.getHomeUrl + ":" + httpPort + httpCall.path).withHeaders("authToken" -> appConfig.getAuthenticationToken)
+    httpCall.method.toUpperCase match {
+      case "GET" => url.get()
+      case "POST" => url.post(JsString(""))
+    }
   }
 
   def discover: Seq[Appliance] = {
