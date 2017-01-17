@@ -4,6 +4,7 @@ import java.io.{InputStream, OutputStream}
 import java.util.UUID
 import javax.inject.Inject
 
+import cats.data.Reader
 import com.amazon.alexa.smarthome.model.Builders._
 import com.amazon.alexa.smarthome.model._
 import com.amazonaws.services.lambda.runtime.{Context, RequestStreamHandler}
@@ -24,8 +25,8 @@ class SmartiiAlexaSpeechlet @Inject()(infraRedService: InfraRedService) extends 
     println(requestString)
     val json = Json.parse(requestString)
     (json \ "header" \ "name").as[String] match {
-      case "TurnOnRequest" =>             writeResponse(Json.fromJson[TurnOnRequest](json).get, output)
-      case "TurnOffRequest" =>            writeResponse(Json.fromJson[TurnOffRequest](json).get, output)
+      case "TurnOnRequest" =>             writeResponse(Json.fromJson[TurnOnRequest](json).get, output).run(context)
+      case "TurnOffRequest" =>            writeResponse(Json.fromJson[TurnOffRequest](json).get, output).run(context)
       case "DiscoverAppliancesRequest" => writeResponse(Json.fromJson[DiscoverAppliancesRequest](json).get, output)
       case "HealthCheckRequest"=>         writeResponse(Json.fromJson[HealthCheckRequest](json).get, output)
     }
@@ -35,28 +36,32 @@ class SmartiiAlexaSpeechlet @Inject()(infraRedService: InfraRedService) extends 
 //    }
   }
 
-  private def writeResponse(turnOnRequest: TurnOnRequest, outputStream: OutputStream) {
+  private def writeResponse(turnOnRequest: TurnOnRequest, outputStream: OutputStream): Reader[Context, Unit] = {
 
-    val response = infraRedService.change(turnOnRequest.payload.appliance.applianceId, SmartHomeAction.turnOn) match {
-      case ActionOutcome.SUCCESS => Json.toJson(turnOnConfirmation())
-      case ActionOutcome.INVALIDTOKEN => Json.toJson(error("InvalidAccessTokenError"))
-      case ActionOutcome.OFFLINE => Json.toJson(error("TargetOfflineError"))
-      case ActionOutcome.UNSUPPORTEDACTION => Json.toJson(error("UnsupportedOperationError"))
+    infraRedService.change(turnOnRequest.payload.appliance.applianceId, SmartHomeAction.turnOn).map { outcome =>
+      val response = outcome match {
+        case ActionOutcome.SUCCESS => Json.toJson(turnOnConfirmation())
+        case ActionOutcome.INVALIDTOKEN => Json.toJson(error("InvalidAccessTokenError"))
+        case ActionOutcome.OFFLINE => Json.toJson(error("TargetOfflineError"))
+        case ActionOutcome.UNSUPPORTEDACTION => Json.toJson(error("UnsupportedOperationError"))
+      }
+
+      outputStream.write(response.toString().getBytes)
     }
-
-    outputStream.write(response.toString().getBytes)
   }
 
-  private def writeResponse(turnOffRequest: TurnOffRequest, outputStream: OutputStream) {
+  private def writeResponse(turnOffRequest: TurnOffRequest, outputStream: OutputStream): Reader[Context, Unit] = {
 
-    val response = infraRedService.change(turnOffRequest.payload.appliance.applianceId, SmartHomeAction.turnOff) match {
-      case ActionOutcome.SUCCESS => Json.toJson(turnOffConfirmation())
-      case ActionOutcome.INVALIDTOKEN => Json.toJson(error("InvalidAccessTokenError"))
-      case ActionOutcome.OFFLINE => Json.toJson(error("TargetOfflineError"))
-      case ActionOutcome.UNSUPPORTEDACTION => Json.toJson(error("UnsupportedOperationError"))
+    infraRedService.change(turnOffRequest.payload.appliance.applianceId, SmartHomeAction.turnOff).map { outcome =>
+      val response = outcome match {
+        case ActionOutcome.SUCCESS => Json.toJson(turnOffConfirmation())
+        case ActionOutcome.INVALIDTOKEN => Json.toJson(error("InvalidAccessTokenError"))
+        case ActionOutcome.OFFLINE => Json.toJson(error("TargetOfflineError"))
+        case ActionOutcome.UNSUPPORTEDACTION => Json.toJson(error("UnsupportedOperationError"))
+      }
+
+      outputStream.write(response.toString().getBytes)
     }
-
-    outputStream.write(response.toString().getBytes)
   }
 
   private def writeResponse(discoverAppliancesRequest: DiscoverAppliancesRequest, outputStream: OutputStream) {
@@ -69,6 +74,7 @@ class SmartiiAlexaSpeechlet @Inject()(infraRedService: InfraRedService) extends 
       payload = DiscoveredAppliancesPayload(discoveredAppliances = infraRedService.discover.map(_.toDiscoveredAppliance))
     )
 
+    println(Json.prettyPrint(Json.toJson(response)))
     outputStream.write(Json.toJson(response).toString().getBytes)
   }
 

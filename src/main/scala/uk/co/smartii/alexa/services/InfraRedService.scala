@@ -5,7 +5,9 @@ import javax.inject.Inject
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
+import cats.data.Reader
 import com.amazon.alexa.smarthome.model.{DiscoveredAppliance, SmartHomeAction}
+import com.amazonaws.services.lambda.runtime.Context
 import play.api.libs.json.{JsObject, JsString, JsValue}
 import play.api.libs.ws.{WSClient, WSResponse}
 import uk.co.smartii.alexa.daos.SmartiiApplianceDao
@@ -29,36 +31,35 @@ class InfraRedService @Inject()(appConfig: AppConfig,
   implicit val implicitSystem = system
   implicit val implicitMaterializer = materializer
 
-//  implicit val system = ActorSystem()
-//  implicit val materializer = ActorMaterializer()
-//  val wsClient: WSClient = NingWSClient()
 
   private def httpFutureCall(httpPort: Int, httpCall: HttpCall) = {
     val url = wsClient.url(appConfig.getHomeUrl + ":" + httpPort + httpCall.path).withHeaders("authToken" -> appConfig.getAuthenticationToken)
     httpCall.method.toUpperCase match {
-      case "GET" => url.get()
+      case "GET" => println(url);url.get()
       case "POST" => url.post(JsString(""))
     }
   }
 
   def discover: Seq[Appliance] = {
 
-    Await.result(smartiiApplianceDao.appliances, 20 seconds)
+    Await.result(smartiiApplianceDao.appliances, 15 seconds)
   }
 
-  def change(applianceId: String, smartHomeAction: SmartHomeAction.Value): ActionOutcome.Value = {
+  def change(applianceId: String, smartHomeAction: SmartHomeAction.Value): Reader[Context, ActionOutcome.Value] = Reader { context =>
 
-    Await.result(smartiiApplianceDao.appliance(applianceId), 20 seconds).map { appliance =>
+    Await.result(smartiiApplianceDao.appliance(applianceId), 15 seconds).fold{log(context, s"Can't find appliance with id $applianceId"); ActionOutcome.UNSUPPORTEDACTION}
+    { appliance =>
       appliance.actions.find(_.action == smartHomeAction).fold(ActionOutcome.UNSUPPORTEDACTION){ action =>
 
+        log(context, s"Changing appliance ${appliance.name} to $smartHomeAction")
         // TODO: move this delayed execution to run from home as this is burning lamdba time (and it's blocking)
         val futures = action.events.map {
-          case delayedHttpCall @ HttpCall(_, _, _, Some(delay)) =>
+          case delayedHttpCall @ HttpCall(_, _, _, Some(delay)) => log(context, s"Running delayed http call ${delayedHttpCall.path} ");
             akka.pattern.after(delay.asDuration, system.scheduler)(httpFutureCall(appliance.room.httpPort, delayedHttpCall))
-          case httpCall: HttpCall => httpFutureCall(appliance.room.httpPort, httpCall)
+          case httpCall: HttpCall => log(context, s"Running http call ${httpCall.path} "); httpFutureCall(appliance.room.httpPort, httpCall)
         }
         // As some events have delays we have to include those in wait time when blocking
-        val responseStatii = Await.result(Future.sequence(futures), (5 seconds) + action.events.collect{
+        val responseStatii = Await.result(Future.sequence(futures), (11 seconds) + action.events.collect{
           case HttpCall(_, _, _, Some(delay)) => delay.asDuration
         }.foldLeft(0 seconds)(_ + _)).map(_.status)
 
@@ -70,7 +71,7 @@ class InfraRedService @Inject()(appConfig: AppConfig,
           case(_, status) if status != Status.OK => ActionOutcome.OFFLINE
         }
       }
-    }.getOrElse(ActionOutcome.OFFLINE)
+    }
   }
 
   def send(room: String, device: String, command: String): String = {
@@ -81,5 +82,10 @@ class InfraRedService @Inject()(appConfig: AppConfig,
     /*val response = */Await.result(futureResponse, 5 seconds)
 ""
 //    response.json.as[String]
+  }
+
+  private def log(context: Context, message: String) {
+    println("Printing: " + message)
+    context.getLogger.log(message)
   }
 }

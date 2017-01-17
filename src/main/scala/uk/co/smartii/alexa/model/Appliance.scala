@@ -13,7 +13,7 @@ case class Appliance(applianceId: String, name: String, description: String, roo
 
   def toDiscoveredAppliance: DiscoveredAppliance = {
     discoveredAppliance(actions = actions.map(_.action), applianceId = applianceId, friendlyName = name,
-      friendlyDescription = description)
+      friendlyDescription = description, modelName = "unknown", manufacturerName = "unknown", version = "1")
   }
 }
 

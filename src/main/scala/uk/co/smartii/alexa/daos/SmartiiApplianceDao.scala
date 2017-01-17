@@ -1,7 +1,7 @@
 package uk.co.smartii.alexa.daos
 
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 
 import uk.co.smartii.alexa.model
 import uk.co.smartii.alexa.model.Tables.{Appliancemappingevents, Httpcallevent, Appliance => ApplianceTable, Room => RoomTable}
@@ -20,14 +20,14 @@ trait SmartiiApplianceDao {
   def appliances: Future[Seq[model.Appliance]]
 }
 
-
+@Singleton
 class SmartiiApplianceDaoImpl @Inject()(tables: Tables,
-                                    db: Tables.profile.backend.DatabaseDef) {
+                                    db: Tables.profile.backend.DatabaseDef) extends SmartiiApplianceDao {
 
   type DatabaseId = Int
 
   def rooms: Future[Seq[(Int, model.Room)]] = {
-    db.run(RoomTable.result.map(_.map(row => row.id -> model.Room(name = row.name, httpPort = row.httpport))))
+    db.run(RoomTable.result.map(_.map{case row => println(s"Found room ${row.name}"); row.id -> model.Room(name = row.name, httpPort = row.httpport)}))
   }
 
   def appliance(applianceId: String): Future[Option[model.Appliance]] = {
@@ -50,6 +50,7 @@ class SmartiiApplianceDaoImpl @Inject()(tables: Tables,
   }
 
   def appliances: Future[Seq[model.Appliance]] = {
+    println(s"Discovering appliances")
     val futureRooms = rooms
     val futureAppliances = db.run(ApplianceTable.result)
     for {
@@ -57,6 +58,7 @@ class SmartiiApplianceDaoImpl @Inject()(tables: Tables,
       appliances <- futureAppliances
       appEventsMap <- Future.sequence(appliances.map { appliance => applianceEvents(appliance.id).map(events => appliance.id -> events) }).map(_.toMap)
     } yield {
+      println(s"Discovered ${appliances.length} appliances")
       appliances.map { row => model.Appliance(
       applianceId = row.applianceid,
         name = row.name,
@@ -82,7 +84,7 @@ class SmartiiApplianceDaoImpl @Inject()(tables: Tables,
           method = row.method,
           path = row.path,
           order = applianceEventOrderMap.getOrElse(row.appliancemappingeventsid, throw new IllegalStateException(s"No event order defined for appliance hhtp event '${row.appliancemappingeventsid}'")),
-          delay = row.delay.map(delay => model.Delay(delay, row.delayunits.fold(throw new IllegalStateException(s"No units have been specified for delay for event ${row.id}"))(units => TimeUnit.valueOf(units))))
+          delay = row.delay.map(delay => model.Delay(delay, row.delayunits.fold(throw new IllegalStateException(s"No units have been specified for delay for event ${row.id}")){units => TimeUnit.valueOf(units)}))
         )
       }.toMap
     } yield {
