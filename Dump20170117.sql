@@ -1,0 +1,67 @@
+-- MySQL dump 10.13  Distrib 5.7.16, for Linux (x86_64)
+--
+-- Host: smartiihome.cz85kkszab4v.eu-west-1.rds.amazonaws.com    Database: smartii
+-- ------------------------------------------------------
+-- Server version	5.6.27-log
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Dumping data for table `Appliance`
+--
+
+LOCK TABLES `Appliance` WRITE;
+/*!40000 ALTER TABLE `Appliance` DISABLE KEYS */;
+INSERT INTO `Appliance` VALUES (1,'kitchenHiFi','kitchen hifi','The HiFi in the kitchen',1);
+/*!40000 ALTER TABLE `Appliance` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Dumping data for table `ApplianceMappingEvents`
+--
+
+LOCK TABLES `ApplianceMappingEvents` WRITE;
+/*!40000 ALTER TABLE `ApplianceMappingEvents` DISABLE KEYS */;
+INSERT INTO `ApplianceMappingEvents` VALUES (1,'turnOn',0,1),(2,'turnOff',0,1),(3,'turnOff',1,1);
+/*!40000 ALTER TABLE `ApplianceMappingEvents` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Dumping data for table `HttpCallEvent`
+--
+
+LOCK TABLES `HttpCallEvent` WRITE;
+/*!40000 ALTER TABLE `HttpCallEvent` DISABLE KEYS */;
+INSERT INTO `HttpCallEvent` VALUES (1,'GET','/ir/JVC_RM-SEMXS6U/KEY_AUX',1,1,NULL,NULL),(2,'GET','/ir/JVC_RM-SEMXS6U/KEY_AUX',2,1,NULL,NULL),(3,'GET','/ir/JVC_RM-SEMXS6U/KEY_POWER',3,1,7,'SECONDS');
+/*!40000 ALTER TABLE `HttpCallEvent` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Dumping data for table `Room`
+--
+
+LOCK TABLES `Room` WRITE;
+/*!40000 ALTER TABLE `Room` DISABLE KEYS */;
+INSERT INTO `Room` VALUES (1,'Kitchen',9000);
+/*!40000 ALTER TABLE `Room` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2017-01-17 18:03:46
