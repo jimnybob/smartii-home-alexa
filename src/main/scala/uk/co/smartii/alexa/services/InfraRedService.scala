@@ -8,11 +8,11 @@ import akka.stream.ActorMaterializer
 import cats.data.Reader
 import com.amazon.alexa.smarthome.model.{DiscoveredAppliance, SmartHomeAction}
 import com.amazonaws.services.lambda.runtime.Context
-import play.api.libs.json.{JsObject, JsString, JsValue}
+import play.api.libs.json._
 import play.api.libs.ws.{WSClient, WSResponse}
 import uk.co.smartii.alexa.daos.SmartiiApplianceDao
 import uk.co.smartii.alexa.model.Tables.Httpcallevent
-import uk.co.smartii.alexa.model.{ActionOutcome, AppConfig, Appliance, HttpCall}
+import uk.co.smartii.alexa.model._
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -31,11 +31,12 @@ class InfraRedService @Inject()(appConfig: AppConfig,
   implicit val implicitSystem = system
   implicit val implicitMaterializer = materializer
 
+  private val defaultTimeout = 11 seconds
 
   private def httpFutureCall(httpPort: Int, httpCall: HttpCall) = {
     val url = wsClient.url(appConfig.getHomeUrl + ":" + httpPort + httpCall.path).withHeaders("authToken" -> appConfig.getAuthenticationToken)
     httpCall.method.toUpperCase match {
-      case "GET" => println(url);url.get()
+      case "GET" => url.get()
       case "POST" => url.post(JsString(""))
     }
   }
@@ -46,6 +47,28 @@ class InfraRedService @Inject()(appConfig: AppConfig,
   }
 
   def change(applianceId: String, smartHomeAction: SmartHomeAction.Value): Reader[Context, ActionOutcome.Value] = Reader { context =>
+
+    Await.result(smartiiApplianceDao.appliance(applianceId), 15 seconds).fold {
+      log(context, s"Can't find appliance with id $applianceId"); ActionOutcome.UNSUPPORTEDACTION
+    } { appliance =>
+      appliance.actions.find(_.action == smartHomeAction).fold(ActionOutcome.UNSUPPORTEDACTION) { action =>
+
+        log(context, s"Changing appliance ${appliance.name} to $smartHomeAction")
+        // TODO: move this delayed execution to run from home as this is burning lamdba time (and it's blocking)
+
+        val future = wsClient.url(appConfig.getHomeUrl + ":" + appliance.room.httpPort + "/irSequence")
+          .withHeaders("authToken" -> appConfig.getAuthenticationToken)
+          .post(Json.toJson(action.events)).map(_.status)
+        Await.result(future, defaultTimeout) match {
+          case Status.FORBIDDEN => ActionOutcome.INVALIDTOKEN
+          case Status.OK => ActionOutcome.SUCCESS
+          case _ => ActionOutcome.OFFLINE
+        }
+      }
+    }
+  }
+
+  def change2(applianceId: String, smartHomeAction: SmartHomeAction.Value): Reader[Context, ActionOutcome.Value] = Reader { context =>
 
     Await.result(smartiiApplianceDao.appliance(applianceId), 15 seconds).fold{log(context, s"Can't find appliance with id $applianceId"); ActionOutcome.UNSUPPORTEDACTION}
     { appliance =>
@@ -59,7 +82,7 @@ class InfraRedService @Inject()(appConfig: AppConfig,
           case httpCall: HttpCall => log(context, s"Running http call ${httpCall.path} "); httpFutureCall(appliance.room.httpPort, httpCall)
         }
         // As some events have delays we have to include those in wait time when blocking
-        val responseStatii = Await.result(Future.sequence(futures), (11 seconds) + action.events.collect{
+        val responseStatii = Await.result(Future.sequence(futures), (defaultTimeout) + action.events.collect {
           case HttpCall(_, _, _, Some(delay)) => delay.asDuration
         }.foldLeft(0 seconds)(_ + _)).map(_.status)
 
@@ -85,6 +108,7 @@ class InfraRedService @Inject()(appConfig: AppConfig,
   }
 
   private def log(context: Context, message: String) {
+    // TODO: Why isn't the lambda logger logging?
     println("Printing: " + message)
     context.getLogger.log(message)
   }

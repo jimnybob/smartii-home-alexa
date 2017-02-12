@@ -17,6 +17,8 @@ import uk.co.smartii.alexa.model._
 import scala.concurrent.Future
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestActors, TestKit}
 import com.typesafe.config.ConfigFactory
+import play.api.http.Writeable
+import play.api.libs.json.{JsValue, Json}
 
 import scala.concurrent.duration._
 
@@ -44,15 +46,15 @@ class InfraRedServiceSpec extends TestKit(ActorSystem("InfraRedServiceSpec", Con
 
     val ws = mock[WSClient]
     val dao = mock[SmartiiApplianceDao]
-    (dao.appliance _).expects("kitchenHifi").returns(Future.successful(Some(
-      Appliance(applianceId = "", name = "", description = "", room = Room("kitchen", 9000), actions = Seq(ApplianceAction(action = SmartHomeAction.turnOn, events = Seq(HttpCall("get", "/test/path", 0))))))
-    ))
+    val appliance = Appliance(applianceId = "", name = "", description = "", room = Room("kitchen", 9000), actions = Seq(ApplianceAction(action = SmartHomeAction.turnOn, events = Seq(HttpCall("get", "/test/path", 0)))))
+
+    (dao.appliance _).expects("kitchenHifi").returns(Future.successful(Some(appliance)))
     val mockRequest = mock[WSRequest]
     val mockResponse = mock[WSResponse]
     (mockResponse.status _).expects().returns(Status.OK).anyNumberOfTimes()
     (mockRequest.withHeaders _).expects(Seq(("authToken", "asfasdfsda"))).returns(mockRequest)
-    (mockRequest.get: () => Future[WSResponse]).expects().returns(Future.successful(mockResponse))
-    (ws.url _).expects("http://myhouse:9000/test/path").returns(mockRequest)
+    (mockRequest.post[JsValue](_: JsValue)(_: Writeable[JsValue])).expects(Json.toJson(appliance.actions.head.events), *).returns(Future.successful(mockResponse))
+    (ws.url _).expects("http://myhouse:9000/irSequence").returns(mockRequest)
     val irService = new InfraRedService(config, null, null, ws, dao)
 
     val awsContext = mock[Context]
@@ -71,21 +73,20 @@ class InfraRedServiceSpec extends TestKit(ActorSystem("InfraRedServiceSpec", Con
 
     val ws = mock[WSClient]
     val dao = mock[SmartiiApplianceDao]
-    (dao.appliance _).expects("kitchenHifi").returns(Future.successful(Some(
-      Appliance(applianceId = "", name = "", description = "", room = Room("kitchen", 9000),
-        actions = Seq(ApplianceAction(action = SmartHomeAction.turnOff,
-          events = Seq(
-            HttpCall("get", "/test/path/aux", 0),
-            HttpCall("get", "/test/path/off", 1, Some(Delay(10, TimeUnit.SECONDS)))))))
-    )
-    ))
+    val appliance = Appliance(applianceId = "", name = "", description = "", room = Room("kitchen", 9000),
+      actions = Seq(ApplianceAction(action = SmartHomeAction.turnOff,
+        events = Seq(
+          HttpCall("get", "/test/path/aux", 0),
+          HttpCall("get", "/test/path/off", 1, Some(Delay(10, TimeUnit.SECONDS)))))))
+
+    (dao.appliance _).expects("kitchenHifi").returns(Future.successful(Some(appliance)))
     val mockRequest = mock[WSRequest]
     val mockResponse = mock[WSResponse]
     (mockResponse.status _).expects().returns(Status.OK).anyNumberOfTimes()
     (mockRequest.withHeaders _).expects(Seq(("authToken", "asfasdfsda"))).returns(mockRequest).anyNumberOfTimes()
-    (mockRequest.get: () => Future[WSResponse]).expects().returns(Future.successful(mockResponse)).anyNumberOfTimes()
-    (ws.url _).expects("http://myhouse:9000/test/path/aux").returns(mockRequest)
-    (ws.url _).expects("http://myhouse:9000/test/path/off").returns(mockRequest)
+    (mockRequest.post[JsValue](_: JsValue)(_: Writeable[JsValue])).expects(Json.toJson(appliance.actions.head.events), *).returns(Future.successful(mockResponse)).anyNumberOfTimes()
+    (ws.url _).expects("http://myhouse:9000/irSequence").returns(mockRequest)
+//    (ws.url _).expects("http://myhouse:9000/test/path/off").returns(mockRequest)
 
     val irService = new InfraRedService(config, system, null, ws, dao)
 
@@ -95,10 +96,10 @@ class InfraRedServiceSpec extends TestKit(ActorSystem("InfraRedServiceSpec", Con
     (awsContext.getLogger _).expects().returns(lambdaLogger).anyNumberOfTimes()
 
     val start = System.currentTimeMillis()
-    within(11 seconds) {
+    within(1 seconds) {
       val start = System.currentTimeMillis()
       irService.change("kitchenHifi", SmartHomeAction.turnOff).run(awsContext) should be(ActionOutcome.SUCCESS)
-      (System.currentTimeMillis() - start).toInt should be > 10000
+//      (System.currentTimeMillis() - start).toInt should be > 10000
     }
 
   }

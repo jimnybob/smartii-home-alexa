@@ -21,14 +21,20 @@ class SmartiiApplianceDaoSpec extends FlatSpec with Matchers with MockFactory wi
   implicit val defaultPatience =
     PatienceConfig(timeout = Span(10, Seconds), interval = Span(10, Seconds))
 
-  val url = s"jdbc:h2:mem:testdb;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1;INIT=runscript from '${getClass.getResource("/drop.sql").getPath}'\\;runscript from '${getClass.getResource("/create.sql").getPath}'\\;runscript from '${getClass.getResource("/populate.sql").getPath}'"
-  val db = Database.forURL(url, driver = "org.h2.Driver")
+  var db: Tables.profile.backend.DatabaseDef = null
+
+  override protected def beforeAll(): Unit = {
+    val url = s"jdbc:h2:mem:testdb;MODE=MYSQL;DATABASE_TO_UPPER=false;IGNORECASE=true;DB_CLOSE_DELAY=-1;INIT=runscript from '${getClass.getResource("/drop.sql").getPath}'\\;runscript from '${getClass.getResource("/create.sql").getPath}'\\;runscript from '${getClass.getResource("/populate.sql").getPath}'"
+    db = Database.forURL(url, driver = "org.h2.Driver")
+  }
+
 
   "The smartii appliance dao" should "return discoverable appliances" in {
 
     val ws = mock[WSClient]
     val dao = new SmartiiApplianceDaoImpl(Tables, db)
 
+    Thread.sleep(1000)
     val outcome = dao.appliances.futureValue
     outcome.length should be(1)
     outcome.head.applianceId should be("kitchenHiFi")
